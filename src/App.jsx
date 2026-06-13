@@ -231,12 +231,12 @@ function App() {
       setError(null)
       const EPG_SOURCES = ['/epg', 'https://i.mjh.nz/nz/epg.xml', 'https://i.mjh.nz/nz/epg.xml.gz']
       let xmlText = null
-      let epgSource = null
+      let currentEpgSource = null
       let lastError = null
       const attemptedSources = []
 
       for (const source of EPG_SOURCES) {
-        epgSource = source
+        currentEpgSource = source
         attemptedSources.push(source)
         try {
           const response = await fetch(source)
@@ -273,7 +273,7 @@ function App() {
         throw new EpgError({
           title: 'Network error — could not reach EPG server',
           detail: `All configured EPG sources failed: ${attemptedSources.join(', ')}. Last error: ${lastError?.message || 'Unknown error'}`,
-          url: epgSource,
+          url: currentEpgSource,
           fixes: [
             'Check your internet connection and try again.',
             'The EPG server may be temporarily unreachable — try again in a few minutes.',
@@ -290,7 +290,7 @@ function App() {
         throw new EpgError({
           title: 'Failed to parse EPG data',
           detail: xmlDoc.getElementsByTagName('parsererror')[0]?.textContent || 'The XML returned by the server could not be parsed.',
-          url: epgSource,
+          url: currentEpgSource,
           fixes: [
             'The EPG server may have returned malformed data. Try again later.',
           ]
