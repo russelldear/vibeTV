@@ -13,7 +13,9 @@ class EpgError extends Error {
   }
 }
 
-async function getXmlTextFromResponse(response) {
+const EPG_SOURCES = Object.freeze(['/epg', 'https://i.mjh.nz/nz/epg.xml', 'https://i.mjh.nz/nz/epg.xml.gz'])
+
+async function getXmlTextFromResponse(response, sourceUrl) {
   const bytes = new Uint8Array(await response.arrayBuffer())
   const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b
 
@@ -25,7 +27,7 @@ async function getXmlTextFromResponse(response) {
     throw new EpgError({
       title: 'Your browser cannot read compressed EPG data',
       detail: 'The EPG source now returns a gzip-compressed XML file, but this browser does not support gzip decompression.',
-      url: response.url || '/epg',
+      url: response.url || sourceUrl || '/epg',
       fixes: [
         'Update your browser to a newer version and try again.',
       ]
@@ -229,39 +231,58 @@ function App() {
     try {
       setLoading(true)
       setError(null)
-      const EPG_URL = '/epg'
-      let response
-      try {
-        response = await fetch(EPG_URL)
-      } catch (networkError) {
+      let xmlText = null
+      let currentEpgSource = null
+      let lastError = null
+      const attemptedSources = []
+
+      for (const [index, source] of EPG_SOURCES.entries()) {
+        currentEpgSource = source
+        attemptedSources.push(source)
+        try {
+          const response = await fetch(source)
+
+          if (!response.ok) {
+            throw new EpgError({
+              title: 'EPG server returned an error',
+              detail: `HTTP ${response.status} ${response.statusText}`,
+              url: source,
+              fixes: [
+                response.status === 404
+                  ? 'The EPG file was not found on the server. The URL may have changed.'
+                  : response.status >= 500
+                  ? 'The EPG server is experiencing issues. Try again later.'
+                  : `Unexpected HTTP ${response.status} response from the EPG server.`,
+                'If the problem persists, check https://i.mjh.nz for service status.',
+              ]
+            })
+          }
+
+          xmlText = await getXmlTextFromResponse(response, source)
+          break
+        } catch (sourceError) {
+          lastError = sourceError
+          if (import.meta.env.DEV) {
+            console.warn(`EPG source failed (${index + 1}/${EPG_SOURCES.length}): ${source}`, sourceError)
+          }
+        }
+      }
+
+      if (!xmlText) {
+        if (lastError instanceof EpgError) {
+          throw lastError
+        }
+
         throw new EpgError({
           title: 'Network error — could not reach EPG server',
-          detail: networkError.message,
-          url: EPG_URL,
+          detail: `All configured EPG sources failed. Sources tried: ${attemptedSources.join(', ')}. Last error: ${lastError?.message || 'Unknown error'}`,
+          url: currentEpgSource,
           fixes: [
             'Check your internet connection and try again.',
             'The EPG server may be temporarily unreachable — try again in a few minutes.',
           ]
         })
       }
-
-      if (!response.ok) {
-        throw new EpgError({
-          title: `EPG server returned an error`,
-          detail: `HTTP ${response.status} ${response.statusText}`,
-          url: EPG_URL,
-          fixes: [
-            response.status === 404
-              ? 'The EPG file was not found on the server. The URL may have changed.'
-              : response.status >= 500
-              ? 'The EPG server is experiencing issues. Try again later.'
-              : `Unexpected HTTP ${response.status} response from the EPG server.`,
-            'If the problem persists, check https://i.mjh.nz for service status.',
-          ]
-        })
-      }
-
-      const xmlText = await getXmlTextFromResponse(response)
 
       // Parse XML
       const parser = new DOMParser()
@@ -272,7 +293,7 @@ function App() {
         throw new EpgError({
           title: 'Failed to parse EPG data',
           detail: xmlDoc.getElementsByTagName('parsererror')[0]?.textContent || 'The XML returned by the server could not be parsed.',
-          url: EPG_URL,
+          url: currentEpgSource,
           fixes: [
             'The EPG server may have returned malformed data. Try again later.',
           ]
