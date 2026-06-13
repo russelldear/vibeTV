@@ -206,7 +206,7 @@ function App() {
     try {
       setLoading(true)
       setError(null)
-      const EPG_URL = 'https://i.mjh.nz/nz/epg.xml'
+      const EPG_URL = '/epg'
       let response
       try {
         response = await fetch(EPG_URL)
