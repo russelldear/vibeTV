@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/epg", "destination": "https://i.mjh.nz/nz/epg.xml.gz" },
-    { "source": "/epg/", "destination": "https://i.mjh.nz/nz/epg.xml.gz" }
+    { "source": "/epg", "destination": "/api/epg" },
+    { "source": "/epg/", "destination": "/api/epg" }
   ]
 }
