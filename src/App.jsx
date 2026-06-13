@@ -272,7 +272,7 @@ function App() {
 
         throw new EpgError({
           title: 'Network error — could not reach EPG server',
-          detail: `All configured EPG sources failed (${attemptedSources.join(', ')}). ${lastError?.message || ''}`.trim(),
+          detail: `All configured EPG sources failed: ${attemptedSources.join(', ')}. Last error: ${lastError?.message || 'Unknown error'}`,
           url: epgSource,
           fixes: [
             'Check your internet connection and try again.',
