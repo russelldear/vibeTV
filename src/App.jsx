@@ -231,11 +231,13 @@ function App() {
       setError(null)
       const EPG_SOURCES = ['/epg', 'https://i.mjh.nz/nz/epg.xml', 'https://i.mjh.nz/nz/epg.xml.gz']
       let xmlText = null
-      let epgSource = EPG_SOURCES[0]
+      let epgSource = null
       let lastError = null
+      const attemptedSources = []
 
       for (const source of EPG_SOURCES) {
         epgSource = source
+        attemptedSources.push(source)
         try {
           const response = await fetch(source)
 
@@ -259,6 +261,7 @@ function App() {
           break
         } catch (sourceError) {
           lastError = sourceError
+          console.warn(`EPG source failed: ${source}`, sourceError)
         }
       }
 
@@ -269,7 +272,7 @@ function App() {
 
         throw new EpgError({
           title: 'Network error — could not reach EPG server',
-          detail: lastError?.message || 'All configured EPG sources failed.',
+          detail: `All configured EPG sources failed (${attemptedSources.join(', ')}). ${lastError?.message || ''}`.trim(),
           url: epgSource,
           fixes: [
             'Check your internet connection and try again.',
