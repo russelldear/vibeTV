@@ -26,6 +26,72 @@ body {
   border-radius: 12px;
 }
 
+.container.error h1 {
+  background: linear-gradient(135deg, #ff6b6b, #ff4040);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.error-title {
+  font-size: 1.1rem;
+  color: #ffaaaa;
+  margin-bottom: 0.75rem;
+}
+
+.error-detail {
+  font-size: 0.95rem;
+  color: #e0e0e0;
+  margin-bottom: 0.5rem;
+}
+
+.error-detail code {
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.9rem;
+  color: #ffcccc;
+}
+
+.error-fixes {
+  margin: 1rem 0;
+  font-size: 0.95rem;
+  color: #e0e0e0;
+}
+
+.error-fixes ul {
+  margin: 0.5rem 0 0 1.25rem;
+  padding: 0;
+  color: #d0d0d0;
+}
+
+.error-fixes ul li {
+  margin-bottom: 0.35rem;
+}
+
+.retry-button {
+  margin-top: 1.25rem;
+  padding: 0.6rem 1.5rem;
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.5);
+  border-radius: 8px;
+  color: #ffaaaa;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background: rgba(255, 107, 107, 0.35);
+  border-color: #ff6b6b;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255, 107, 107, 0.3);
+}
+
 h1 {
   background: linear-gradient(135deg, #00d4ff, #0099ff);
   -webkit-background-clip: text;

@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import './App.css'
 
+class EpgError extends Error {
+  constructor({ title, detail, url, fixes }) {
+    super(title)
+    this.name = 'EpgError'
+    this.title = title
+    this.detail = detail || null
+    this.url = url || null
+    this.fixes = fixes || []
+  }
+}
+
 function getNzDateParts(timeStr) {
   if (!timeStr || timeStr.length < 14) return null
 
@@ -191,75 +202,96 @@ function App() {
     }
   }, [selectedChannelIds, programmes, selectedDate])
 
-  useEffect(() => {
-    const fetchEPG = async () => {
+  const fetchEPG = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const EPG_URL = 'https://i.mjh.nz/nz/epg.xml'
+      let response
       try {
-        setLoading(true)
-        // Try to fetch from remote URL first, fall back to local file for development
-        let xmlText
-        try {
-          const response = await fetch('https://i.mjh.nz/nz/epg.xml')
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          xmlText = await response.text()
-        } catch (remoteError) {
-          console.warn('Failed to fetch remote EPG, falling back to local copy:', remoteError)
-          const localResponse = await fetch('/epg.xml')
-          if (!localResponse.ok) {
-            throw new Error('Failed to fetch both remote and local EPG files')
-          }
-          xmlText = await localResponse.text()
-        }
-        
-        // Parse XML
-        const parser = new DOMParser()
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
-        
-        // Check for parsing errors
-        if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
-          throw new Error('Failed to parse XML')
-        }
-        
-        // Store raw XML data in memory
-        setEpgData(xmlDoc)
-        
-        // Extract channels
-        const channelElements = xmlDoc.getElementsByTagName('channel')
-        const channelList = Array.from(channelElements).map(channel => ({
-          id: channel.getAttribute('id'),
-          name: channel.getElementsByTagName('display-name')[0]?.textContent || 'Unknown',
-          icon: channel.getElementsByTagName('icon')[0]?.getAttribute('src') || null
-        }))
-        setChannels(channelList)
-        
-        // Extract programmes
-        const programmeElements = xmlDoc.getElementsByTagName('programme')
-        const programmeList = Array.from(programmeElements).map(prog => ({
-          start: prog.getAttribute('start'),
-          stop: prog.getAttribute('stop'),
-          channel: prog.getAttribute('channel'),
-          title: prog.getElementsByTagName('title')[0]?.textContent || 'Unknown',
-          description: prog.getElementsByTagName('desc')[0]?.textContent || '',
-          category: prog.getElementsByTagName('category')[0]?.textContent || '',
-          icon: prog.getElementsByTagName('icon')[0]?.getAttribute('src') || null
-        }))
-        setProgrammes(programmeList)
-        
-        // Dates are derived later based on available programmes
-        
-        // Log to check if icons are being extracted
-        console.log('Sample programmes with icons:', programmeList.filter(p => p.icon).slice(0, 5))
-        
-        setError(null)
-      } catch (err) {
-        setError(err.message)
-        console.error('Error fetching EPG:', err)
-      } finally {
-        setLoading(false)
+        response = await fetch(EPG_URL)
+      } catch (networkError) {
+        throw new EpgError({
+          title: 'Network error — could not reach EPG server',
+          detail: networkError.message,
+          url: EPG_URL,
+          fixes: [
+            'Check your internet connection and try again.',
+            'The EPG server may be temporarily unreachable — try again in a few minutes.',
+          ]
+        })
       }
-    }
 
+      if (!response.ok) {
+        throw new EpgError({
+          title: `EPG server returned an error`,
+          detail: `HTTP ${response.status} ${response.statusText}`,
+          url: EPG_URL,
+          fixes: [
+            response.status === 404
+              ? 'The EPG file was not found on the server. The URL may have changed.'
+              : response.status >= 500
+              ? 'The EPG server is experiencing issues. Try again later.'
+              : `Unexpected HTTP ${response.status} response from the EPG server.`,
+            'If the problem persists, check https://i.mjh.nz for service status.',
+          ]
+        })
+      }
+
+      const xmlText = await response.text()
+
+      // Parse XML
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
+
+      // Check for parsing errors
+      if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+        throw new EpgError({
+          title: 'Failed to parse EPG data',
+          detail: xmlDoc.getElementsByTagName('parsererror')[0]?.textContent || 'The XML returned by the server could not be parsed.',
+          url: EPG_URL,
+          fixes: [
+            'The EPG server may have returned malformed data. Try again later.',
+          ]
+        })
+      }
+
+      // Store raw XML data in memory
+      setEpgData(xmlDoc)
+
+      // Extract channels
+      const channelElements = xmlDoc.getElementsByTagName('channel')
+      const channelList = Array.from(channelElements).map(channel => ({
+        id: channel.getAttribute('id'),
+        name: channel.getElementsByTagName('display-name')[0]?.textContent || 'Unknown',
+        icon: channel.getElementsByTagName('icon')[0]?.getAttribute('src') || null
+      }))
+      setChannels(channelList)
+
+      // Extract programmes
+      const programmeElements = xmlDoc.getElementsByTagName('programme')
+      const programmeList = Array.from(programmeElements).map(prog => ({
+        start: prog.getAttribute('start'),
+        stop: prog.getAttribute('stop'),
+        channel: prog.getAttribute('channel'),
+        title: prog.getElementsByTagName('title')[0]?.textContent || 'Unknown',
+        description: prog.getElementsByTagName('desc')[0]?.textContent || '',
+        category: prog.getElementsByTagName('category')[0]?.textContent || '',
+        icon: prog.getElementsByTagName('icon')[0]?.getAttribute('src') || null
+      }))
+      setProgrammes(programmeList)
+
+      // Log to check if icons are being extracted
+      console.log('Sample programmes with icons:', programmeList.filter(p => p.icon).slice(0, 5))
+    } catch (err) {
+      setError(err)
+      console.error('Error fetching EPG:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchEPG()
   }, [])
 
@@ -307,7 +339,28 @@ function App() {
   }
 
   if (error) {
-    return <div className="container error"><h1>Error: {error}</h1></div>
+    const errObj = error instanceof EpgError
+      ? error
+      : { title: error.message || String(error), detail: null, url: null, fixes: [] }
+    return (
+      <div className="container error">
+        <h1>⚠ EPG Load Failed</h1>
+        <p className="error-title">{errObj.title}</p>
+        {errObj.detail && <p className="error-detail"><strong>Detail:</strong> {errObj.detail}</p>}
+        {errObj.url && <p className="error-detail"><strong>Source:</strong> <code>{errObj.url}</code></p>}
+        {errObj.fixes && errObj.fixes.length > 0 && (
+          <div className="error-fixes">
+            <strong>Possible fixes:</strong>
+            <ul>
+              {errObj.fixes.map((fix, i) => <li key={i}>{fix}</li>)}
+            </ul>
+          </div>
+        )}
+        <button className="retry-button" onClick={fetchEPG}>
+          Retry
+        </button>
+      </div>
+    )
   }
 
   return (
