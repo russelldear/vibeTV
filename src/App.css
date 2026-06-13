@@ -231,7 +231,8 @@ h2 {
   white-space: nowrap;
 }
 
-.date-selector select {
+.date-selector select,
+.date-selector input[type="date"] {
   padding: 0.5rem 0.75rem;
   background: rgba(10, 10, 10, 0.6);
   color: #e0e0e0;
@@ -241,14 +242,17 @@ h2 {
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  color-scheme: dark;
 }
 
-.date-selector select:hover {
+.date-selector select:hover,
+.date-selector input[type="date"]:hover {
   border-color: rgba(0, 212, 255, 0.5);
   background: rgba(10, 10, 10, 0.8);
 }
 
-.date-selector select:focus {
+.date-selector select:focus,
+.date-selector input[type="date"]:focus {
   outline: none;
   border-color: #00d4ff;
   box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
