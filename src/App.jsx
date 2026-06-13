@@ -262,7 +262,9 @@ function App() {
           break
         } catch (sourceError) {
           lastError = sourceError
-          console.warn(`EPG source failed (${index + 1}/${EPG_SOURCES.length}): ${source}`, sourceError)
+          if (import.meta.env.DEV) {
+            console.warn(`EPG source failed (${index + 1}/${EPG_SOURCES.length}): ${source}`, sourceError)
+          }
         }
       }
 
@@ -273,7 +275,7 @@ function App() {
 
         throw new EpgError({
           title: 'Network error — could not reach EPG server',
-          detail: `All configured EPG sources failed. Sources tried: ${attemptedSources.join(' | ')}. Last error: ${lastError?.message || 'Unknown error'}`,
+          detail: `All configured EPG sources failed. Sources tried: ${attemptedSources.join(', ')}. Last error: ${lastError?.message || 'Unknown error'}`,
           url: currentEpgSource,
           fixes: [
             'Check your internet connection and try again.',
