@@ -59,9 +59,9 @@ npm run preview
 - ⚛️ React 18
 - 🔥 Hot Module Replacement (HMR)
 - 📦 Optimized production builds
-- 📺 Fetches NZ TV EPG data from https://i.mjh.nz/nz/epg.xml with local fallback
-- 📂 Includes local copy of EPG data (`public/epg.xml`) for development and offline work
+- 📺 Fetches live NZ TV EPG data from https://i.mjh.nz/nz/epg.xml
+- ⚠️ Displays a detailed error message (HTTP status, cause, and suggested fixes) if the EPG cannot be loaded — no stale cached data is shown
 
 ## Development Notes
 
-The app fetches the EPG (Electronic Program Guide) data on startup. It will attempt to fetch the latest data from the remote URL first, but will fall back to the local cached copy (`public/epg.xml`) if the remote request fails. This allows for uninterrupted development work even without internet connectivity.
+The app always fetches live EPG data from the remote URL on startup. If the request fails (network error, non-2xx HTTP response, or parse failure), a detailed error screen is shown with the HTTP status code, error message, and suggested fixes — along with a **Retry** button. No stale local fallback is used, so the data displayed is always current.
