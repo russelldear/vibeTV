@@ -113,6 +113,10 @@ function getDurationInMinutes(startStr, stopStr) {
   return Math.round(diffMs / (1000 * 60))
 }
 
+function formatDateKey(dateKey) {
+  return `${dateKey.substring(0, 4)}-${dateKey.substring(4, 6)}-${dateKey.substring(6, 8)}`
+}
+
 function App() {
   const [epgData, setEpgData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -266,14 +270,12 @@ function App() {
     }
 
     const datesSet = new Set()
-    programmes
-      .filter(prog => selectedChannelIds.length === 0 || selectedChannelIds.includes(prog.channel))
-      .forEach(prog => {
-        const dateStr = getNzDateKey(prog.start)
-        if (dateStr) {
-          datesSet.add(dateStr)
-        }
-      })
+    programmes.forEach(prog => {
+      const dateStr = getNzDateKey(prog.start)
+      if (dateStr) {
+        datesSet.add(dateStr)
+      }
+    })
 
     const datesList = Array.from(datesSet).sort()
     setAvailableDates(datesList)
@@ -298,7 +300,7 @@ function App() {
       if (prev && datesList.includes(prev)) return prev
       return datesList.includes(nzDateStr) ? nzDateStr : datesList[0]
     })
-  }, [programmes, selectedChannelIds])
+  }, [programmes])
 
   if (loading) {
     return <div className="container"><h1>Loading EPG data...</h1></div>
@@ -321,29 +323,20 @@ function App() {
           </button>
           {availableDates.length > 0 && (
             <div className="date-selector">
-              <label htmlFor="date-dropdown">Date:</label>
-              <select 
-                id="date-dropdown"
-                value={selectedDate || ''} 
-                onChange={(e) => setSelectedDate(e.target.value)}
-              >
-                {availableDates.map(date => {
-                  const year = date.substring(0, 4)
-                  const month = date.substring(4, 6)
-                  const day = date.substring(6, 8)
-                  const dateObj = new Date(Date.UTC(year, month - 1, day))
-                  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-                  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                  const dayName = days[dateObj.getUTCDay()]
-                  const monthName = months[dateObj.getUTCMonth()]
-                  const dayNum = dateObj.getUTCDate()
-                  return (
-                    <option key={date} value={date}>
-                      {dayName} {dayNum} {monthName} {year}
-                    </option>
-                  )
-                })}
-              </select>
+              <label htmlFor="date-picker">Date:</label>
+              <input
+                type="date"
+                id="date-picker"
+                value={selectedDate ? formatDateKey(selectedDate) : ''}
+                min={formatDateKey(availableDates[0])}
+                max={formatDateKey(availableDates[availableDates.length - 1])}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (val) {
+                    setSelectedDate(val.replace(/-/g, ''))
+                  }
+                }}
+              />
             </div>
           )}
         </div>
