@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/epg"
+  to = "https://i.mjh.nz/nz/epg.xml"
+  status = 200
+  force = true
