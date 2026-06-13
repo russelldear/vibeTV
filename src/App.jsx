@@ -13,6 +13,29 @@ class EpgError extends Error {
   }
 }
 
+async function getXmlTextFromResponse(response) {
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b
+
+  if (!isGzip) {
+    return new TextDecoder().decode(bytes)
+  }
+
+  if (typeof DecompressionStream === 'undefined') {
+    throw new EpgError({
+      title: 'Your browser cannot read compressed EPG data',
+      detail: 'The EPG source now returns a gzip-compressed XML file, but this browser does not support gzip decompression.',
+      url: response.url || '/epg',
+      fixes: [
+        'Update your browser to a newer version and try again.',
+      ]
+    })
+  }
+
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+  return new Response(stream).text()
+}
+
 function getNzDateParts(timeStr) {
   if (!timeStr || timeStr.length < 14) return null
 
@@ -238,7 +261,7 @@ function App() {
         })
       }
 
-      const xmlText = await response.text()
+      const xmlText = await getXmlTextFromResponse(response)
 
       // Parse XML
       const parser = new DOMParser()
