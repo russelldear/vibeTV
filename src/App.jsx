@@ -13,6 +13,8 @@ class EpgError extends Error {
   }
 }
 
+const EPG_SOURCES = Object.freeze(['/epg', 'https://i.mjh.nz/nz/epg.xml', 'https://i.mjh.nz/nz/epg.xml.gz'])
+
 async function getXmlTextFromResponse(response, sourceUrl) {
   const bytes = new Uint8Array(await response.arrayBuffer())
   const isGzip = bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b
@@ -229,13 +231,12 @@ function App() {
     try {
       setLoading(true)
       setError(null)
-      const EPG_SOURCES = ['/epg', 'https://i.mjh.nz/nz/epg.xml', 'https://i.mjh.nz/nz/epg.xml.gz']
       let xmlText = null
       let currentEpgSource = null
       let lastError = null
       const attemptedSources = []
 
-      for (const source of EPG_SOURCES) {
+      for (const [index, source] of EPG_SOURCES.entries()) {
         currentEpgSource = source
         attemptedSources.push(source)
         try {
@@ -261,7 +262,7 @@ function App() {
           break
         } catch (sourceError) {
           lastError = sourceError
-          console.warn(`EPG source failed: ${source}`, sourceError)
+          console.warn(`EPG source failed (${index + 1}/${EPG_SOURCES.length}): ${source}`, sourceError)
         }
       }
 
@@ -272,7 +273,7 @@ function App() {
 
         throw new EpgError({
           title: 'Network error — could not reach EPG server',
-          detail: `All configured EPG sources failed: ${attemptedSources.join(', ')}. Last error: ${lastError?.message || 'Unknown error'}`,
+          detail: `All configured EPG sources failed. Sources tried: ${attemptedSources.join(' | ')}. Last error: ${lastError?.message || 'Unknown error'}`,
           url: currentEpgSource,
           fixes: [
             'Check your internet connection and try again.',
