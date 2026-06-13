@@ -59,7 +59,7 @@ npm run preview
 - ⚛️ React 18
 - 🔥 Hot Module Replacement (HMR)
 - 📦 Optimized production builds
-- 📺 Fetches live NZ TV EPG data from https://i.mjh.nz/nz/epg.xml
+- 📺 Fetches live NZ TV EPG data from https://i.mjh.nz/nz/epg.xml.gz
 - ⚠️ Displays a detailed error message (HTTP status, cause, and suggested fixes) if the EPG cannot be loaded — no stale cached data is shown
 
 ## Development Notes
