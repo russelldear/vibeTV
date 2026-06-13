@@ -9,7 +9,7 @@ export default defineConfig({
       '/epg': {
         target: 'https://i.mjh.nz',
         changeOrigin: true,
-        rewrite: () => '/nz/epg.xml',
+        rewrite: (_path) => '/nz/epg.xml',
         followRedirects: true,
       },
     },
